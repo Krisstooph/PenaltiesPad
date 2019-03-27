@@ -5,13 +5,24 @@ using UnityEngine;
 
 public class MainGame : MonoBehaviour
 {
-    public GameObject ball;
-    public float power = 9.0f;
-    private Rigidbody ballRb;
+    private static String fireButton = "Fire2";
+    private static float minShotForce = 12.0f;
+    private static float maxGoalShotForce = 15.0f;
+    private static float maxShotForce = 20.0f;
+    private static float xShotFactor = 0.43f;
+    private static float yShotFactor = 0.43f;
 
+    public GameObject ball;
+    public Vector3 xyz = new Vector3(0.43f, 0.35f, 1.0f);
+    public float shotForceTMP = 15.0f;
+    private Vector3 ballStartPosition;
+    private Rigidbody ballRb;
+    private float shotForce = minShotForce;
+    
     void Start()
     {
-        ballRb = ball.GetComponentInChildren<Rigidbody>();
+        ballRb = ball.GetComponent<Rigidbody>();
+        ballStartPosition = ball.gameObject.transform.position;
     }
 
     void Update()
@@ -21,43 +32,57 @@ public class MainGame : MonoBehaviour
 
     private void CheckInput()
     {
-/*
-        if (Input.GetButtonDown("Fire2"))
+        float missedShot = 0.0f;
+
+        if (Input.GetButtonDown("Jump"))
         {
-            ballRb.AddForce(transform.forward * power, ForceMode.Impulse);
-        }
-*/
-        if (Input.GetAxis("Horizontal") > 0.0f && Input.GetAxis("Vertical") >= 0.0f)
-        {
-            Debug.Log("Right top corner shot!");
+            ball.gameObject.transform.position = ballStartPosition;
+            ballRb.velocity = Vector3.zero;
+            ballRb.rotation = Quaternion.identity;
+            shotForce = minShotForce;
         }
 
-        if (Input.GetAxis("Horizontal") > 0.0f && Input.GetAxis("Vertical") < 0.0f)
+        if (Input.GetButton(fireButton))
         {
-            Debug.Log("Right bottom corner shot!");
+            shotForce += 0.15f;
+
+            if (shotForce > maxShotForce)
+                shotForce = maxShotForce;
         }
 
-        if (Input.GetAxis("Horizontal") < 0.0f && Input.GetAxis("Vertical") >= 0.0f)
+        if (Input.GetButtonUp(fireButton))
         {
-            Debug.Log("Left top corner shot!");
-        }
+            Vector3 shotVector = transform.forward;
 
-        if (Input.GetAxis("Horizontal") < 0.0f && Input.GetAxis("Vertical") < 0.0f)
-        {
-            Debug.Log("Left bottom corner shot!");
-        }
-        
-        if (Input.GetAxis("Horizontal") == 0.0f && Input.GetAxis("Vertical") > 0.0f)
-        {
-            Debug.Log("Center top shot!");
-        }
+            if (shotForce > maxGoalShotForce)
+            {
+                missedShot = (shotForce - maxGoalShotForce) / 10.0f;
 
-        if (Input.GetAxis("Horizontal") == 0.0f && Input.GetAxis("Vertical") < 0.0f)
-        {
-            Debug.Log("Center bottom shot!");
-        }
+                if (missedShot < 0.1f)
+                    missedShot = 0.1f;
 
-        //Debug.Log("X Axis: " + Input.GetAxis("Horizontal"));
-        //Debug.Log("Y Axis: " + Input.GetAxis("Vertical"));
+                Debug.Log("MISSED SHOT!");
+            }
+
+            if (Input.GetAxis("Horizontal") > 0.0f && Input.GetAxis("Vertical") >= 0.0f)
+                shotVector = new Vector3(xShotFactor + missedShot, yShotFactor + missedShot, 1.0f);
+
+            if (Input.GetAxis("Horizontal") > 0.0f && Input.GetAxis("Vertical") < 0.0f)
+                shotVector = new Vector3(xShotFactor + missedShot, 0, 1.0f);
+
+            if (Input.GetAxis("Horizontal") < 0.0f && Input.GetAxis("Vertical") >= 0.0f)
+                shotVector = new Vector3(-xShotFactor - missedShot, yShotFactor + missedShot, 1.0f);
+
+            if (Input.GetAxis("Horizontal") < 0.0f && Input.GetAxis("Vertical") < 0.0f)
+                shotVector = new Vector3(-xShotFactor - missedShot, 0, 1.0f);
+
+            if (Input.GetAxis("Horizontal") == 0.0f && Input.GetAxis("Vertical") > 0.0f)
+                shotVector = new Vector3(0, yShotFactor + missedShot, 1.0f);
+
+            if (Input.GetAxis("Horizontal") == 0.0f && Input.GetAxis("Vertical") < 0.0f)
+                shotVector = new Vector3(0, 0, 1.0f);
+
+            ballRb.AddForce(shotVector * shotForce, ForceMode.Impulse);
+        }
     }
 }
