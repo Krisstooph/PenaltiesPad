@@ -5,24 +5,30 @@ using UnityEngine;
 
 // TODO:
 // * Correct reset behaviour: ball should not rotate and move
+// * [UNITY] Add more colliders behind the goal - ball often flies through it
 public class MainGame : MonoBehaviour
 {
     private static float minShotForce = 12.0f;
     private static float maxGoalShotForce = 15.0f;
     private static float maxShotForce = 20.0f;
     private static float xShotFactor = 0.43f;
-    private static float yShotFactor = 0.43f;
+    private static float yShotFactor = 0.35f;
 
     public GameObject ball;
+    public GameObject goalkeeper;
     private Vector3 ballStartPosition;
+    private Vector3 goalkeeperStartPosition;
     private Rigidbody ballRb;
-    private float shotForce = minShotForce;
+    private Rigidbody goalkeeperRb;
     private bool joy1Shooting = true;
+    private float shotForce = minShotForce;
 
     void Start()
     {
         ballRb = ball.GetComponent<Rigidbody>();
+        goalkeeperRb = goalkeeper.GetComponent<Rigidbody>();
         ballStartPosition = ball.gameObject.transform.position;
+        goalkeeperStartPosition = goalkeeper.gameObject.transform.position;
     }
 
     void Update()
@@ -36,9 +42,10 @@ public class MainGame : MonoBehaviour
 
         if (InputMgr.IsAnyResetButtonDown())
         {
-            ball.gameObject.transform.position = ballStartPosition;
+            ball.gameObject.transform.SetPositionAndRotation(ballStartPosition, Quaternion.identity);
             ballRb.velocity = Vector3.zero;
-            ballRb.rotation = Quaternion.identity;
+            goalkeeper.gameObject.transform.SetPositionAndRotation(goalkeeperStartPosition, Quaternion.identity);
+            goalkeeper.gameObject.transform.Rotate(Vector3.up, 180.0f);
             shotForce = minShotForce;
             joy1Shooting = !joy1Shooting;
         }
@@ -53,7 +60,8 @@ public class MainGame : MonoBehaviour
 
         if (InputMgr.IsShotButtonUp(joy1Shooting))
         {
-            Vector3 shotVector = transform.forward;
+            Vector3 shotVector;
+            Vector3 saveVector;
             String footballerHorizontal;
             String footballerVertical;
             String goalkeeperHorizontal;
@@ -82,27 +90,54 @@ public class MainGame : MonoBehaviour
                 goalkeeperVertical = InputMgr.Joy1Vertical;
             }
 
-            if (Input.GetAxis(footballerHorizontal) > 0.0f && InputMgr.GetProperVerticalValue(footballerVertical) >= 0.0f)
-                shotVector = new Vector3(xShotFactor + missedShot, yShotFactor + missedShot, 1.0f);
-
-            if (Input.GetAxis(footballerHorizontal) > 0.0f && InputMgr.GetProperVerticalValue(footballerVertical) < 0.0f)
-                shotVector = new Vector3(xShotFactor + missedShot, 0, 1.0f);
-
-            if (Input.GetAxis(footballerHorizontal) < 0.0f && InputMgr.GetProperVerticalValue(footballerVertical) >= 0.0f)
-                shotVector = new Vector3(-xShotFactor - missedShot, yShotFactor + missedShot, 1.0f);
-
-            if (Input.GetAxis(footballerHorizontal) < 0.0f && InputMgr.GetProperVerticalValue(footballerVertical) < 0.0f)
-                shotVector = new Vector3(-xShotFactor - missedShot, 0, 1.0f);
-
-            if (Input.GetAxis(footballerHorizontal) == 0.0f && InputMgr.GetProperVerticalValue(footballerVertical) > 0.0f)
-                shotVector = new Vector3(0, yShotFactor + missedShot, 1.0f);
-
-            if (Input.GetAxis(footballerHorizontal) == 0.0f && InputMgr.GetProperVerticalValue(footballerVertical) < 0.0f)
-                shotVector = new Vector3(0, 0, 1.0f);
-
+            shotVector = FootballerAction(footballerHorizontal, footballerVertical, missedShot);
             ballRb.AddForce(shotVector * shotForce, ForceMode.Impulse);
+            saveVector = GoalkeeperAction(goalkeeperHorizontal, goalkeeperVertical);
+            goalkeeperRb.AddForce(saveVector * 250.0f, ForceMode.Impulse);
         }
     }
 
+    private Vector3 FootballerAction(String footballerHorizontal, String footballerVertical, float missedShot)
+    {
+        Vector3 shotVector = Vector3.forward;
 
+        if (Input.GetAxis(footballerHorizontal) > 0.0f && InputMgr.GetProperVerticalValue(footballerVertical) >= 0.0f)
+            shotVector = new Vector3(xShotFactor + missedShot, yShotFactor + missedShot, 1.0f);
+
+        if (Input.GetAxis(footballerHorizontal) > 0.0f && InputMgr.GetProperVerticalValue(footballerVertical) < 0.0f)
+            shotVector = new Vector3(xShotFactor + missedShot, 0, 1.0f);
+
+        if (Input.GetAxis(footballerHorizontal) < 0.0f && InputMgr.GetProperVerticalValue(footballerVertical) >= 0.0f)
+            shotVector = new Vector3(-xShotFactor - missedShot, yShotFactor + missedShot, 1.0f);
+
+        if (Input.GetAxis(footballerHorizontal) < 0.0f && InputMgr.GetProperVerticalValue(footballerVertical) < 0.0f)
+            shotVector = new Vector3(-xShotFactor - missedShot, 0, 1.0f);
+
+        if (Input.GetAxis(footballerHorizontal) == 0.0f && InputMgr.GetProperVerticalValue(footballerVertical) > 0.0f)
+            shotVector = new Vector3(0, yShotFactor + missedShot, 1.0f);
+
+        return shotVector;
+    }
+
+    private Vector3 GoalkeeperAction(String goalkeeperHorizontal, String goalkeeperVertical)
+    {
+        Vector3 saveVector = Vector3.zero;
+
+        if (Input.GetAxis(goalkeeperHorizontal) > 0.0f && InputMgr.GetProperVerticalValue(goalkeeperVertical) >= 0.0f)
+            saveVector = new Vector3(1.5f, 1.3f, 0);
+
+        if (Input.GetAxis(goalkeeperHorizontal) > 0.0f && InputMgr.GetProperVerticalValue(goalkeeperVertical) < 0.0f)
+            saveVector = new Vector3(2, 0.3f, 0);
+
+        if (Input.GetAxis(goalkeeperHorizontal) < 0.0f && InputMgr.GetProperVerticalValue(goalkeeperVertical) >= 0.0f)
+            saveVector = new Vector3(-1.5f, 1.3f, 0);
+
+        if (Input.GetAxis(goalkeeperHorizontal) < 0.0f && InputMgr.GetProperVerticalValue(goalkeeperVertical) < 0.0f)
+            saveVector = new Vector3(-2, 0.3f, 0);
+
+        if (Input.GetAxis(goalkeeperHorizontal) == 0.0f && InputMgr.GetProperVerticalValue(goalkeeperVertical) > 0.0f)
+            saveVector = Vector3.up;
+
+        return saveVector;
+    }
 }
