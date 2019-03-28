@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 // TODO:
-// * Correct reset behaviour: ball should not rotate and move
+// * Correct reset behaviour: ball and goalkeeper should not rotate and move
 // * [UNITY] Add more colliders behind the goal - ball often flies through it
 public class MainGame : MonoBehaviour
 {
@@ -16,10 +16,12 @@ public class MainGame : MonoBehaviour
 
     public GameObject ball;
     public GameObject goalkeeper;
+    public GameObject invisibleWall;
     private Vector3 ballStartPosition;
     private Vector3 goalkeeperStartPosition;
     private Rigidbody ballRb;
     private Rigidbody goalkeeperRb;
+    private BoxCollider wallCollider;
     private bool joy1Shooting = true;
     private float shotForce = minShotForce;
 
@@ -27,6 +29,7 @@ public class MainGame : MonoBehaviour
     {
         ballRb = ball.GetComponent<Rigidbody>();
         goalkeeperRb = goalkeeper.GetComponent<Rigidbody>();
+        wallCollider = invisibleWall.GetComponent<BoxCollider>();
         ballStartPosition = ball.gameObject.transform.position;
         goalkeeperStartPosition = goalkeeper.gameObject.transform.position;
     }
@@ -47,6 +50,7 @@ public class MainGame : MonoBehaviour
             goalkeeper.gameObject.transform.SetPositionAndRotation(goalkeeperStartPosition, Quaternion.identity);
             goalkeeper.gameObject.transform.Rotate(Vector3.up, 180.0f);
             shotForce = minShotForce;
+            wallCollider.enabled = false;
             joy1Shooting = !joy1Shooting;
         }
 
@@ -124,16 +128,27 @@ public class MainGame : MonoBehaviour
         Vector3 saveVector = Vector3.zero;
 
         if (Input.GetAxis(goalkeeperHorizontal) > 0.0f && InputMgr.GetProperVerticalValue(goalkeeperVertical) >= 0.0f)
+        {
             saveVector = new Vector3(1.5f, 1.3f, 0);
+            wallCollider.enabled = true;
+        }
 
         if (Input.GetAxis(goalkeeperHorizontal) > 0.0f && InputMgr.GetProperVerticalValue(goalkeeperVertical) < 0.0f)
+        {
             saveVector = new Vector3(2, 0.3f, 0);
+            wallCollider.enabled = true;
+        }
 
         if (Input.GetAxis(goalkeeperHorizontal) < 0.0f && InputMgr.GetProperVerticalValue(goalkeeperVertical) >= 0.0f)
+        {
             saveVector = new Vector3(-1.5f, 1.3f, 0);
-
+            wallCollider.enabled = true;
+        }
         if (Input.GetAxis(goalkeeperHorizontal) < 0.0f && InputMgr.GetProperVerticalValue(goalkeeperVertical) < 0.0f)
+        {
             saveVector = new Vector3(-2, 0.3f, 0);
+            wallCollider.enabled = true;
+        }
 
         if (Input.GetAxis(goalkeeperHorizontal) == 0.0f && InputMgr.GetProperVerticalValue(goalkeeperVertical) > 0.0f)
             saveVector = Vector3.up;
