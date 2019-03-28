@@ -5,7 +5,6 @@ using UnityEngine;
 
 // TODO:
 // * Correct reset behaviour: ball and goalkeeper should not rotate and move
-// * [UNITY] Add more colliders behind the goal - ball often flies through it
 public class MainGame : MonoBehaviour
 {
     private static float minShotForce = 12.0f;
@@ -17,13 +16,19 @@ public class MainGame : MonoBehaviour
     public GameObject ball;
     public GameObject goalkeeper;
     public GameObject invisibleWall;
+    private Ball ballScript;
     private Vector3 ballStartPosition;
     private Vector3 goalkeeperStartPosition;
     private Rigidbody ballRb;
     private Rigidbody goalkeeperRb;
     private BoxCollider wallCollider;
     private bool joy1Shooting = true;
+    private bool goalScored = false;
+    private bool shotMade = false;
     private float shotForce = minShotForce;
+    private int round = 1;
+    private int player1Goals = 0;
+    private int player2Goals = 0;
 
     void Start()
     {
@@ -32,18 +37,43 @@ public class MainGame : MonoBehaviour
         wallCollider = invisibleWall.GetComponent<BoxCollider>();
         ballStartPosition = ball.gameObject.transform.position;
         goalkeeperStartPosition = goalkeeper.gameObject.transform.position;
+        ballScript = (Ball) ball.GetComponent(typeof(Ball));
     }
 
     void Update()
     {
         CheckInput();
+
+        if (!goalScored && ballScript.IsGoal())
+        {
+            goalScored = true;
+
+            if (joy1Shooting)
+                player1Goals++;
+            else
+                player2Goals++;
+
+            Debug.Log("Player1 " + player1Goals + ":" + player2Goals + " Player2");
+        }
+
+        if (round == 5)
+        {
+            if (player1Goals == player2Goals)
+            {
+                // Extra penalties...
+            }
+            else
+            {
+                // Finish game (check who won)
+            }
+        }
     }
 
     private void CheckInput()
     {
         float missedShot = 0.0f;
 
-        if (InputMgr.IsAnyResetButtonDown())
+        if (shotMade && InputMgr.IsAnyResetButtonDown())
         {
             ball.gameObject.transform.SetPositionAndRotation(ballStartPosition, Quaternion.identity);
             ballRb.velocity = Vector3.zero;
@@ -52,6 +82,11 @@ public class MainGame : MonoBehaviour
             shotForce = minShotForce;
             wallCollider.enabled = false;
             joy1Shooting = !joy1Shooting;
+            goalScored = false;
+            shotMade = false;
+
+            if (!joy1Shooting && shotMade)
+                round++;
         }
 
         if (InputMgr.IsShotButtonHeld(joy1Shooting))
@@ -70,6 +105,8 @@ public class MainGame : MonoBehaviour
             String footballerVertical;
             String goalkeeperHorizontal;
             String goalkeeperVertical;
+
+            shotMade = true;
 
             if (shotForce > maxGoalShotForce)
             {
